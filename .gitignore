@@ -1,6 +1,15 @@
-__pycache__
+__pycache__/
+.DS_Store
+.coverage
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+build/
+dist/
 download_list.txt
+venv/
 *YTS.MX*
 *YTS.LT*
-*.torrent
 *.log
+*.torrent

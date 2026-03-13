@@ -1,36 +1,86 @@
-import session
+"""Compatibility wrapper for older imports that used the top-level `api` module."""
 
-class NewMovieEndpoint(object):
-    yts_mx = session.NewSession()
-        
+from __future__ import annotations
+
+from collections.abc import Mapping
+
+from arles.client import YTSClient
+from arles.http import QueryValue
+from arles.models import SearchFilters
+from session import NewSession
+
+
+class NewMovieEndpoint:
+    """Legacy adapter that preserves the old response-oriented surface area."""
+
+    def __init__(
+        self,
+        *,
+        base_url: str = "https://yts.mx",
+        request_session: NewSession | None = None,
+    ) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.yts_mx = request_session or NewSession()
+
     def list_movies(
-            self, limit=20, page=1, quality="All", minimum_rating="0",
-            query_term="", genre="All", sort_by="year", order_by="desc",
-            with_rt_ratings="false", endpoint="/api/v2/list_movies.json",
-            params=dict()):
-        endpoint_params = {
-            "limit": limit, "page":  page, "quality": quality,
-            "minimum_rating": minimum_rating, "query_term": query_term,
-            "genre": genre, "sort_by": sort_by, "order_by": order_by,
-            "with_rt_ratings": with_rt_ratings,
-        }
-
-        if endpoint != "/api/v2/list_movies.json":
-            if params:
-                return(self.yts_mx.query(url="https://yts.mx", endpoint=endpoint, params=params))
-            else:
-                return self.yts_mx.query(url="https://yts.mx", endpoint=endpoint, params=dict())
-        else:
-            return self.yts_mx.query(url="https://yts.mx", endpoint=endpoint, params=endpoint_params)
+        self,
+        *,
+        limit: int = 20,
+        page: int = 1,
+        quality: str = "All",
+        minimum_rating: float = 0.0,
+        query_term: str = "",
+        genre: str = "All",
+        sort_by: str = "year",
+        order_by: str = "desc",
+        with_rt_ratings: bool = False,
+        endpoint: str = "/api/v2/list_movies.json",
+        params: Mapping[str, QueryValue] | None = None,
+    ):
+        endpoint_params = params or SearchFilters(
+            limit=limit,
+            page=page,
+            quality=quality,
+            minimum_rating=minimum_rating,
+            query_term=query_term,
+            genre=genre,
+            sort_by=sort_by,  # type: ignore[arg-type]
+            order_by=order_by,  # type: ignore[arg-type]
+        ).as_api_params()
+        if endpoint == "/api/v2/list_movies.json":
+            endpoint_params = {
+                **endpoint_params,
+                "with_rt_ratings": with_rt_ratings,
+            }
+        return self.yts_mx.query(
+            url=self.base_url,
+            endpoint=endpoint,
+            params=endpoint_params,
+        )
 
     def movie_details(
-            self, imdb_id=str(), with_images=str(), with_cast=str(),
-            endpoint="/v2/movie_details.json"):
-        endpoint_params = {
-            "imdb_id": imdb_id, "with_images": with_images, "with_cast": with_cast,
-        }
-
-        if endpoint != "/api/v2/movie_details.json":
-            return self.yts_mx.query(url="https://yts.mx", endpoint=endpoint, params=dict())
-        else:
-            return self.yts_mx.query(url="https://yts.mx", endpoint=endpoint, params=endpoint_params)
+        self,
+        *,
+        movie_id: int | None = None,
+        imdb_id: str = "",
+        with_images: bool = False,
+        with_cast: bool = False,
+        endpoint: str = "/api/v2/movie_details.json",
+    ):
+        resolved_movie_id = movie_id
+        if resolved_movie_id is None and imdb_id:
+            movie = YTSClient(base_url=self.base_url).find_movie_by_imdb(imdb_id)
+            if movie is None:
+                raise ValueError(f"No movie found for IMDb id {imdb_id}.")
+            resolved_movie_id = movie.movie_id
+        if resolved_movie_id is None:
+            raise ValueError("movie_id or imdb_id must be supplied.")
+        return self.yts_mx.query(
+            url=self.base_url,
+            endpoint=endpoint,
+            params={
+                "movie_id": resolved_movie_id,
+                "with_images": with_images,
+                "with_cast": with_cast,
+            },
+        )

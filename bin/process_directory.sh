@@ -1,19 +1,18 @@
-#!/bin/zsh
+#!/usr/bin/env bash
+
+set -euo pipefail
+shopt -s nullglob
+
+process_matches() {
+  local directory
+
+  for directory in *YTS.MX* *YTS.LT*; do
+    [[ -d "${directory}" ]] || continue
+    "${HOME}/process_torrent.sh" "${directory}"
+  done
+}
 
 while true; do
-  if ls *YTS.MX* > /dev/null 2>&1; then
-    for directory in *YTS.MX*; do
-      if [[ -n "$directory" ]]; then
-        ~/process_torrent.sh "$directory"
-      fi
-    done
-    sleep 300
-  elif ls *YTS.LT* > /dev/null 2>&1; then
-    for directory in *YTS.LT*; do
-      if [[ -n "$directory" ]]; then
-        ~/process_torrent.sh "$directory"
-      fi
-    done
-    sleep 300
-  fi
+  process_matches
+  sleep 300
 done

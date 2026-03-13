@@ -1,12 +1,9 @@
-raelldottin/OrganizeMovies v0.0.1-18
-====================================
-.. image:: https://github.com/raelldottin/OrganizeMovies/actions/workflows/pyright.yml/badge.svg
-   :alt: Python Linter
-   :target: https://github.com/raelldottin/OrganizeMovies/actions/workflows/pyright.yml
-
-
-.. _about:
-About
+arles
 =====
 
-Download and organize video files
+Arles searches the YTS movie catalogue and can print or download the selected torrent files.
+
+Documentation
+-------------
+
+See ``README.md`` for the quick start guide, ``docs/user-guide.md`` for end-user usage, and ``docs/testing.md`` for the verification strategy.

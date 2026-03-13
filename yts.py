@@ -1,107 +1,41 @@
-"""YTS module for downloading movies"""
-import os
-import time
-import random
-import bs4
-import api
+"""Compatibility wrapper around the modern CLI."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+
+from arles.cli import main
 
 
-"""
-print_only ---> False
-download_torrents ---> True
-log_filename ---> test.log
-query_string --->
-"""
+class YTS:
+    """Preserve the old `YTS(flags).run()` entry point."""
 
+    def __init__(self, flags: Mapping[str, object], query_string: str = "") -> None:
+        self.flags = dict(flags)
+        self.query_string = query_string or str(self.flags.get("query_string", ""))
 
-class YTS(object):
-    search_term = "0" 
-    quality = "2160p"
-    genre = "all"
-    rating = "7"
-    order_by = "year"
-    year = "0"
-    language = "en"
-
-    endpoint = "".
-    endpoint = "/browse-movies/0/2160p/all/7/year/0/en"
-    list_of_movies = []
-    movies_indexes = [
-        endpoint,
-    ]
-    params = {}
-    download_link = ""
-    flags = {}
-    query_string = ""
-
-    def __init__(self, flags, query_string=""):
-        self.flags = flags
-        for key, value in self.flags.items():
-            self.print_verbose(key, "->", value)
-
-    def get_indexes(self) -> None:
-        yts_mx = api.NewMovieEndpoint()
-        html = yts_mx.list_movies(endpoint=self.endpoint, params=dict())
-        time.sleep(random.uniform(5.0, 10.0))
-        soup = bs4.BeautifulSoup(html.text, "html.parser")
-        for link in soup("a", href=True):
-            if self.endpoint in link["href"]:
-                if link["href"] not in self.movies_indexes:
-                    self.movies_indexes.append(link["href"])
-
-    def get_download_links(self) -> None:
-        yts_mx = api.NewMovieEndpoint()
-        self.print_verbose(
-            f"Gathering movie links from {self.endpoint=}\t{self.params=}"
-        )
-        if self.params:
-            html = yts_mx.list_movies(endpoint=self.endpoint, params=self.params)
+    def run(self) -> int:
+        argv = [
+            "--quality",
+            "2160p",
+            "--minimum-rating",
+            "7",
+            "--sort-by",
+            "year",
+            "--order-by",
+            "desc",
+        ]
+        if self.query_string:
+            argv.extend(["--query", self.query_string])
+        if bool(self.flags.get("download_torrents", False)):
+            argv.extend(["--download-torrents", "--download-dir", "."])
         else:
-            html = yts_mx.list_movies(endpoint=self.endpoint, params=dict())
-        time.sleep(random.uniform(5.0, 10.0))
-        soup = bs4.BeautifulSoup(html.text, "html.parser")
-        for link in soup("a", href=True):
-            if "https://yts.mx/movies/" in link["href"]:
-                if link["href"] not in self.list_of_movies:
-                    self.list_of_movies.append(link["href"])
-        for movie_link in self.list_of_movies:
-            endpoint = "".join(["/", "/".join(movie_link.split("/")[-2:])])
-            self.download_link = str()
-            html = yts_mx.movie_details(endpoint=endpoint)
-            time.sleep(random.uniform(5.0, 10.0))
-            soup = bs4.BeautifulSoup(html.text, "html.parser")
-            for keyword in [
-                "2160p.WEB Torrent",
-                "2160p Torrent",
-            ]:
-                if not self.download_link:
-                    for link in soup("a", href=True):
-                        if ("https://yts.mx/torrent/" in link["href"]) and (
-                            keyword in link["title"]
-                        ):
-                            self.download_link = link["href"]
-                            self.process_movie_link()
-                            break
+            argv.append("--print-only")
 
-    def process_movie_link(self):
-        self.print_verbose(f"Processing download link {self.download_link}")
-        if self.flags["download_torrents"]:
-            torrent_file = f"{self.download_link.split('/')[-1:][0]}.torrent"
-            os.popen(f"curl -fsSL {self.download_link} -o {torrent_file}")
-            time.sleep(random.uniform(5.0, 10.0))
-        elif self.flags["print_only"] or self.flags["verbose"]:
-            print(self.download_link)
+        log_filename = str(self.flags.get("log_filename", "") or "")
+        if log_filename:
+            argv.extend(["--log-file", log_filename])
+        if bool(self.flags.get("verbose", False)):
+            argv.append("--verbose")
 
-    def print_verbose(self, *message):
-        if self.flags["verbose"]:
-            print(message)
-
-    def run(self):
-        self.get_indexes()
-        for index in self.movies_indexes:
-            if "?" in index:
-                self.endpoint, page = index.split("?")
-                self.params[page.split("=")[0]] = page.split("=")[1]
-            else:
-                self.params = dict()
-            self.get_download_links()
+        return main(argv)

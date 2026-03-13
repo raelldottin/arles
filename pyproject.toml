@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=82.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arles"
+version = "0.1.0"
+description = "Search the YTS catalogue and optionally download torrent files."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Raell Dottin" }]
+dependencies = ["requests>=2.32,<3"]
+
+[project.optional-dependencies]
+dev = [
+  "pyright>=1.1.408,<2",
+  "pytest>=9,<10",
+  "ruff>=0.15,<0.16",
+  "shellcheck-py>=0.11,<0.12",
+]
+
+[project.scripts]
+arles = "arles.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["arles*"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "integration: exercises multiple components together across infrastructure boundaries",
+]
+
+[tool.pyright]
+include = ["arles", "tests", "api.py", "log.py", "restapi.py", "run.py", "session.py", "yts.py"]
+exclude = ["venv", ".venv"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+reportMissingTypeStubs = "none"
+
+[tool.ruff]
+target-version = "py311"
+extend-exclude = ["venv", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "PTH", "RUF"]

@@ -1,14 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# https://www.viget.com/articles/two-ways-to-share-git-hooks-with-your-team/
-# Set the git hooks path
-# git config core.hooksPath .githooks
+set -euo pipefail
 
-# Set your git tags
-# git tag -a "0.0.1"
+if [[ ! -x ".venv/bin/ruff" ]]; then
+  echo "Missing development tools. Run '.venv/bin/python -m pip install -e .[dev]'."
+  exit 1
+fi
 
-# run from the root of the repo
-.githooks/replace_by_git_vars.py README.template README.md
-
-# Example:
-# [![Integration Tests](https://github.com/{{ repository.name }}/actions/workflows/integration-tests.yaml/badge.svg?branch={{ current.branch }})](https://github.com/{{ repository.name }}/actions/workflows/integration-tests.yaml?query=branch%3A{{ current.branch }})
+.venv/bin/ruff check .
+.venv/bin/pyright
+.venv/bin/pytest -m "not integration"
+.venv/bin/shellcheck bin/process_directory.sh bin/process_torrent.sh .githooks/pre-commit
